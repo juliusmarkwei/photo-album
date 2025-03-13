@@ -1,22 +1,28 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { s3Client } from "@/app/utils/s3Config";
+import { getSecret } from "@/app/utils/secretManager";
 
 export const GET = async (request: NextRequest) => {
     try {
+        const secret: { [key: string]: string } = JSON.parse(
+            (await getSecret()) as string
+        );
+
         const command = new ListObjectsV2Command({
-            Bucket: process.env.NEXT_PUBLIC_AWS_BUCKET_NAME!,
+            Bucket: secret["NEXT_PUBLIC_AWS_BUCKET_NAME"],
         });
 
-        const { Contents } = await s3Client.send(command);
+        const { Contents } = await (await s3Client).send(command);
         const imageUrls =
             Contents?.map((obj) => ({
                 key: obj.Key,
                 name: obj.Key?.split("/")[2].split("-")[1],
                 category: obj.Key?.split("/")[1],
-                url: `https://${process.env.NEXT_PUBLIC_AWS_BUCKET_NAME}.s3.${
-                    process.env.NEXT_PUBLIC_AWS_REGION
-                }.amazonaws.com/${encodeURIComponent(obj.Key!)}`,
+                url: `https://${
+                    secret["NEXT_PUBLIC_AWS_BUCKET_NAME"]
+                }.s3.us-east-1.amazonaws.com/${encodeURIComponent(obj.Key!)}`,
             })) || [];
 
         return NextResponse.json({

@@ -97,7 +97,7 @@ const DisplayImages = () => {
                                 strokeWidth="1.5"
                                 stroke="currentColor"
                                 tabIndex={0}
-                                className="size-10 text-white p-2 focus:bg-pink-500 transition-colors duration-200"
+                                className="size-10 font-bold text-white p-2 focus:bg-pink-500 transition-colors duration-200"
                             >
                                 <path
                                     strokeLinecap="round"

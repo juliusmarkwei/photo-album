@@ -14,7 +14,7 @@ const Header = () => {
                 height={50}
                 width={50}
                 alt="profile"
-                className="rounded-full w-10 h-10 lg:w-14 lg:h-14 cursor-pointer"
+                className="rounded-full w-10 h-10 lg:w-14 lg:h-14 cursor-pointer mr-1 mt-1 lg:mr-3 lg:mt-2"
             />
         </div>
     );
