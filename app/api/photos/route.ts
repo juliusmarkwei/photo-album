@@ -12,9 +12,11 @@ export const GET = async (request: NextRequest) => {
         const imageUrls =
             Contents?.map((obj) => ({
                 key: obj.Key,
-                name: obj.Key?.split("/")[2],
+                name: obj.Key?.split("/")[2].split("-")[1],
                 category: obj.Key?.split("/")[1],
-                url: `https://${process.env.NEXT_PUBLIC_AWS_BUCKET_NAME}.s3.amazonaws.com/${obj.Key}`,
+                url: `https://${process.env.NEXT_PUBLIC_AWS_BUCKET_NAME}.s3.${
+                    process.env.NEXT_PUBLIC_AWS_REGION
+                }.amazonaws.com/${encodeURIComponent(obj.Key!)}`,
             })) || [];
 
         return NextResponse.json({

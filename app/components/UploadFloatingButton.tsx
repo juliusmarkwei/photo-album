@@ -3,7 +3,6 @@
 import React, { useRef, useState } from "react";
 import Image from "next/image";
 import UploadImage from "@/public/2609994_6323.jpg";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { PhotoCategories } from "../constants/categories";
 
@@ -18,7 +17,6 @@ const UploadFloatingButton = () => {
     const [category, setCategory] = useState<string>(
         categories[categories.length - 1]
     );
-    const router = useRouter();
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -47,8 +45,8 @@ const UploadFloatingButton = () => {
 
             if (response.ok) {
                 toast.success("Image uploaded successfully!");
-                router.refresh();
                 cancleImageUpload();
+                window.location.reload();
             } else {
                 toast.error("Failed to upload image.");
             }
@@ -83,7 +81,7 @@ const UploadFloatingButton = () => {
 
             {/* Upload Button */}
             <button
-                className="fixed bottom-15 lg:bottom-10 right-7 lg:right-10 bg-white text-black p-2 rounded-full shadow-lg focus:outline-none focus:ring-opacity-50"
+                className="fixed bottom-15 lg:bottom-12 right-7 lg:right-30 bg-white text-black p-2 rounded-full shadow-lg focus:outline-none focus:ring-opacity-50"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
             >

@@ -5,7 +5,7 @@ const Categories = () => {
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
     const imageCategories = Object.values(PhotoCategories);
     return (
-        <section className="flex items-center w-dvw overflow-x-scroll gap-2 mt-4">
+        <section className="flex items-center w-dvw overflow-x-scroll gap-2 my-2 lg:my-4">
             {imageCategories.map((cat: string, index: number) => {
                 return (
                     <div

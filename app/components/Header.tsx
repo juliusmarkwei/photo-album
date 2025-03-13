@@ -3,7 +3,7 @@ import React from "react";
 
 const Header = () => {
     return (
-        <div className="flex items-center justify-between lg:justify-between w-full">
+        <div className="flex items-center justify-between lg:justify-between w-full ">
             <input
                 type="text"
                 placeholder="Search..."

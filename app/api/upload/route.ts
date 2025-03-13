@@ -15,7 +15,9 @@ export const POST = async (request: NextRequest) => {
 
         const uploadParams = {
             Bucket: process.env.NEXT_PUBLIC_AWS_BUCKET_NAME!,
-            Key: `uploads/${category || "Other"}/${name || file.name}`,
+            Key: `uploads/${category || "Other"}/${new Date()}-${
+                name || file.name
+            }`,
             Body: fileBuffer,
             ContentType: file.type,
         };
