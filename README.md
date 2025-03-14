@@ -77,6 +77,20 @@ npm run start
 📄 tsconfig.json # TypeScript configuration
 ```
 
+## Shots of The Application
+
+### 1. Landing Page
+
+<img src="./public/Screenshot1.png">
+
+### 2. Filtered Photos by "Anime" category
+
+<img src="./public/Screenshot2.png">
+
+### 3. Uploading A new image to S3
+
+<img src="./public/Screenshot3.png">
+
 ## 📚 Learn More
 
 To learn more about **Next.js**, check out the following resources:
