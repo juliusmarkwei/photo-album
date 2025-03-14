@@ -6,21 +6,62 @@ import UploadFloatingButton from "./components/UploadFloatingButton";
 import Footer from "./components/Footer";
 import DisplayImages from "./components/DisplayImages";
 import Ruler from "./components/Ruler";
+import { useEffect, useState } from "react";
+import { PhotoCategories } from "./constants/categories";
 
 export default function Home() {
-    return (
-        <div className="relative bg-black items-center justify-items-center h-dvh w-full p-3 pb-20 font-[family-name:var(--font-geist-sans)]">
-            <div className="fixed w-full top-0 left-0 bg-black z-50">
-                <Header />
-                <Ruler />
-                <Categories />
-            </div>
+	const [images, setImages] = useState<
+		{ url: string; name: string; category: string }[]
+	>([]);
+	const [isLoading, setIsLoading] = useState(true);
 
-            <div className="mt-[140px]">
-                <DisplayImages />
-                <UploadFloatingButton />
-                <Footer />
-            </div>
-        </div>
-    );
+	const [selectedCategory, setSelectedCategory] = useState<string>(
+		PhotoCategories.All
+	);
+	const [searchTerm, setSearchTerm] = useState("");
+
+	useEffect(() => {
+		const fetchImages = async () => {
+			try {
+				const response = await fetch("/api/photos");
+				const data = await response.json();
+				console.log(data);
+				setImages(data.images);
+			} catch (error) {
+				console.error("Error fetching images:", error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+		fetchImages();
+	}, []);
+
+	// Filter images by category and search term
+	const filteredImages = images.filter(
+		(img) =>
+			(!selectedCategory ||
+				img.category === selectedCategory ||
+				img.category === PhotoCategories.All) &&
+			(!searchTerm ||
+				img.name.toLowerCase().includes(searchTerm.toLowerCase()))
+	);
+
+	return (
+		<div className="relative bg-black items-center justify-items-center h-dvh w-full p-3 pb-20 font-[family-name:var(--font-geist-sans)]">
+			<div className="fixed w-full top-0 left-0 bg-black z-50">
+				<Header setSearchTerm={setSearchTerm} />
+				<Ruler />
+				<Categories setSelectedCategory={setSelectedCategory} />
+			</div>
+
+			<div className="mt-[140px]">
+				<DisplayImages
+					filteredImages={filteredImages}
+					isLoading={isLoading}
+				/>
+				<UploadFloatingButton />
+				<Footer />
+			</div>
+		</div>
+	);
 }
