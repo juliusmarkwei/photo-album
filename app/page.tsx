@@ -11,7 +11,7 @@ import { PhotoCategories } from "./constants/categories";
 
 export default function Home() {
     const [images, setImages] = useState<
-        { url: string; name: string; category: string }[]
+        { url: string; name: string; category: string; key: string }[]
     >([]);
     const [isLoading, setIsLoading] = useState(true);
 

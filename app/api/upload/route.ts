@@ -24,7 +24,7 @@ export const POST = async (request: NextRequest) => {
             ContentType: file.type,
         };
 
-        await (await s3Client).send(new PutObjectCommand(uploadParams));
+        await s3Client.send(new PutObjectCommand(uploadParams));
 
         return NextResponse.json(
             { message: "File uploaded successfully" },
