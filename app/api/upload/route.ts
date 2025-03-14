@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { s3Client } from "@/app/utils/s3Config";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSecret } from "@/app/utils/secretManager";
+
+const BUCKETNAME = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
 
 export const POST = async (request: NextRequest) => {
     try {
@@ -14,12 +15,8 @@ export const POST = async (request: NextRequest) => {
         const buffer = await file.arrayBuffer();
         const fileBuffer = Buffer.from(buffer);
 
-        const secret: { [key: string]: string } = JSON.parse(
-            (await getSecret()) as string
-        );
-
         const uploadParams = {
-            Bucket: secret["NEXT_PUBLIC_AWS_BUCKET_NAME"],
+            Bucket: BUCKETNAME,
             Key: `uploads/${category || "Other"}/${new Date()}-${
                 name || file.name
             }`,
