@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Image to Private ECR
 
 on:
     push:
@@ -20,25 +20,26 @@ jobs:
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                   aws-region: us-east-1
 
-            - name: Ensure ECR Public Repository Exists
+            - name: Ensure ECR Private Repository Exists
               run: |
-                  if ! aws ecr-public describe-repositories --query 'repositories[?repositoryName==`julius/photo-album`]' | grep "repositoryName"; then
+                  REPO_NAME="julius/photo-album"
+                  if ! aws ecr describe-repositories --repository-names "$REPO_NAME" > /dev/null 2>&1; then
                     echo "Repository not found. Creating..."
-                    aws ecr-public create-repository --repository-name julius/photo-album
+                    aws ecr create-repository --repository-name "$REPO_NAME"
                   fi
 
-            - name: Login to Amazon ECR Public
+            - name: Login to Amazon ECR Private
               run: |
-                  aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/j1n7u2e7
+                  aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
 
             - name: Build Docker Image
               run: |
                   docker build -t photo-album .
 
-            - name: Tag Docker Image for Public ECR
+            - name: Tag Docker Image for Private ECR
               run: |
-                  docker tag photo-album:latest public.ecr.aws/j1n7u2e7/julius/photo-album:latest
+                  docker tag photo-album:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/julius/photo-album:latest
 
             - name: Push Docker Image to ECR
               run: |
-                  docker push public.ecr.aws/j1n7u2e7/julius/photo-album:latest
+                  docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/julius/photo-album:latest
