@@ -1,9 +1,9 @@
 version: 0.0
 Resources:
-    - TargetService:
-          Type: AWS::ECS::Service
-          Properties:
-              TaskDefinition: "arn:aws:ecs:us-east-1:677276083056:task-definition/photo-album-td:15"
-              LoadBalancerInfo:
-                  ContainerName: photo-album-container
-                  ContainerPort: 3000
+  - TargetService:
+      Type: AWS::ECS::Service
+      Properties:
+        TaskDefinition: "arn:aws:ecs:us-east-1:677276083056:task-definition/photo-album-td:15"
+        LoadBalancerInfo:
+          ContainerName: photo-album-container
+          ContainerPort: 3000
