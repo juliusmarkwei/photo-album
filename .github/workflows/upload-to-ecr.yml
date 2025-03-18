@@ -36,7 +36,6 @@ jobs:
               run: |
                   TASK_DEF_NAME="photo-album-td"
                   aws ecs describe-task-definition --task-definition $TASK_DEF_NAME --query taskDefinition > task-def.json
-
                   TASK_DEF_JSON=$(jq -c '.' task-def.json)
                   echo "TASK_DEF_JSON=$TASK_DEF_JSON" >> $GITHUB_ENV
 
@@ -44,26 +43,23 @@ jobs:
               id: update-task-def
               run: |
                   IMAGE_URI="public.ecr.aws/j1n7u2e7/julius/photo-album:latest"
-
                   NEW_TASK_DEF=$(jq --arg IMAGE "$IMAGE_URI" '
-                  del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy, .compatibilities, .requiresAttributes, .tags)
-                  | .containerDefinitions[0].image=$IMAGE ' task-def.json)
-
+                    del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy, .compatibilities, .requiresAttributes, .tags)
+                    | .containerDefinitions[0].image=$IMAGE ' task-def.json)
                   echo "$NEW_TASK_DEF" > new-task-def.json
                   NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --query "taskDefinition.taskDefinitionArn" --output text)
-
                   echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
             - name: Prepare CodeDeploy Deployment File
               run: |
-                  APP_SPEC_CONTENT=$(jq -c . < appspec.json | base64)
-                  echo '{
-                      "revision": {
-                          "revisionType": "AppSpecContent",
-                          "appSpecContent": {
-                              "content": "'"$APP_SPEC_CONTENT"'"
-                          }
+                  APP_SPEC_CONTENT=$(jq -c . < appspec.json | base64 -w 0)
+                  jq -n --arg content "$APP_SPEC_CONTENT" '{
+                    "revision": {
+                      "revisionType": "AppSpecContent",
+                      "appSpecContent": {
+                        "content": $content
                       }
+                    }
                   }' > deploy.json
 
             - name: Trigger CodeDeploy Deployment

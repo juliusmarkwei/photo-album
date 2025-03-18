@@ -5,7 +5,11 @@
             "targetService": {
                 "type": "AWS::ECS::Service",
                 "properties": {
-                    "taskDefinition": "arn:aws:ecs:us-east-1:677276083056:task-definition/photo-album-td:15"
+                    "taskDefinition": "arn:aws:ecs:us-east-1:ACCOUNT_ID:task-definition/photo-album-td:15",
+                    "loadBalancerInfo": {
+                        "containerName": "photo-album-container",
+                        "containerPort": 3000
+                    }
                 }
             }
         }
