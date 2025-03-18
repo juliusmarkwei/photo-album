@@ -56,10 +56,13 @@ jobs:
 
             - name: Prepare CodeDeploy Deployment File
               run: |
+                  APP_SPEC_CONTENT=$(jq -c . < appspec.json | base64)
                   echo '{
                       "revision": {
                           "revisionType": "AppSpecContent",
-                          "appSpecContent": '"$(jq -c . < appspec.json)"'
+                          "appSpecContent": {
+                              "content": "'"$APP_SPEC_CONTENT"'"
+                          }
                       }
                   }' > deploy.json
 
@@ -68,4 +71,4 @@ jobs:
                   aws deploy create-deployment \
                     --application-name AppECS-photo-album-cluster-photo-album-service \
                     --deployment-group-name DgpECS-photo-album-cluster-photo-album-service \
-                    --cli-input-json file://deploy.json
+                    --revision file://deploy.json
