@@ -1,89 +1,99 @@
 name: Build and Push Image to Public ECR, and Trigger ECS Blue/Green Deployment
 
 on:
-    push:
-        branches:
-            - main
+  push:
+    branches:
+      - main
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-            - name: Install Latest AWS CLI
-              run: |
-                  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                  unzip awscliv2.zip
-                  sudo ./aws/install --update
-                  aws --version
+      - name: Install Latest AWS CLI
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install --update
+          aws --version
 
-            - name: Configure AWS Credentials
-              uses: aws-actions/configure-aws-credentials@v2
-              with:
-                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                  aws-region: us-east-1
+      - name: Install yq
+        run: |
+          sudo snap install yq
+          yq --version
 
-            - name: Login to Amazon Public ECR
-              run: |
-                  aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/j1n7u2e7
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-            - name: Build and Push Docker Image
-              run: |
-                  IMAGE_URI="public.ecr.aws/j1n7u2e7/julius/photo-album:latest"
-                  docker build -t julius/photo-album .
-                  docker tag julius/photo-album:latest $IMAGE_URI
-                  docker push $IMAGE_URI
+      - name: Login to Amazon Public ECR
+        run: |
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/j1n7u2e7
 
-            - name: Get Current ECS Task Definition
-              id: get-task-def
-              run: |
-                  TASK_DEF_NAME="photo-album-td"
-                  aws ecs describe-task-definition --task-definition $TASK_DEF_NAME --query taskDefinition > task-def.json
-                  TASK_DEF_JSON=$(jq -c '.' task-def.json)
-                  echo "TASK_DEF_JSON=$TASK_DEF_JSON" >> $GITHUB_ENV
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_URI="public.ecr.aws/j1n7u2e7/julius/photo-album:latest"
+          docker build -t julius/photo-album .
+          docker tag julius/photo-album:latest $IMAGE_URI
+          docker push $IMAGE_URI
 
-            - name: Update Task Definition with New Image
-              id: update-task-def
-              run: |
-                  IMAGE_URI="public.ecr.aws/j1n7u2e7/julius/photo-album:latest"
-                  NEW_TASK_DEF=$(jq --arg IMAGE "$IMAGE_URI" '
-                    del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy, .compatibilities, .requiresAttributes, .tags)
-                    | .containerDefinitions[0].image=$IMAGE ' task-def.json)
-                  echo "$NEW_TASK_DEF" > new-task-def.json
-                  NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --query "taskDefinition.taskDefinitionArn" --output text)
-                  echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
+      - name: Get Current ECS Task Definition
+        id: get-task-def
+        run: |
+          TASK_DEF_NAME="photo-album-td"
+          aws ecs describe-task-definition --task-definition $TASK_DEF_NAME --query taskDefinition > task-def.json
+          TASK_DEF_JSON=$(jq -c '.' task-def.json)
+          echo "TASK_DEF_JSON=$TASK_DEF_JSON" >> $GITHUB_ENV
 
-            - name: Prepare CodeDeploy Deployment File
-              run: |
-                  # Update TaskDefinition in the YAML file with the new ARN
-                  sed "s|TaskDefinition: \".*\"|TaskDefinition: \"$NEW_TASK_DEF_ARN\"|" appspec.yml > temp-appspec.yml
-                  echo "Updated appspec.yml content:"
-                  cat temp-appspec.yml
-                  # Base64-encode the YAML directly
-                  APP_SPEC_CONTENT=$(base64 -w 0 < temp-appspec.yml)
-                  echo "Base64-encoded content: $APP_SPEC_CONTENT"
-                  # Create the revision JSON file
-                  jq -n --arg content "$APP_SPEC_CONTENT" '{
-                    "revisionType": "AppSpecContent",
-                    "appSpecContent": {
-                      "content": $content
-                    }
-                  }' > deploy.json
-                  echo "Generated deploy.json:"
-                  cat deploy.json
-                  rm temp-appspec.yml
+      - name: Update Task Definition with New Image
+        id: update-task-def
+        run: |
+          IMAGE_URI="public.ecr.aws/j1n7u2e7/julius/photo-album:latest"
+          NEW_TASK_DEF=$(jq --arg IMAGE "$IMAGE_URI" '
+            del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy, .compatibilities, .requiresAttributes, .tags)
+            | .containerDefinitions[0].image=$IMAGE ' task-def.json)
+          echo "$NEW_TASK_DEF" > new-task-def.json
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --query "taskDefinition.taskDefinitionArn" --output text)
+          echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
-            - name: Debug deploy.json
-              run: |
-                  cat deploy.json
+      - name: Prepare CodeDeploy Deployment File
+        run: |
+          # Update TaskDefinition using yq
+          yq e ".Resources[0].TargetService.Properties.TaskDefinition = \"$NEW_TASK_DEF_ARN\"" appspec.yml > temp-appspec.yml
+          echo "Updated appspec.yml content:"
+          cat temp-appspec.yml
+          # Validate the YAML
+          yq e '.' temp-appspec.yml > /dev/null && echo "YAML is valid" || echo "YAML is invalid"
+          # Base64-encode the YAML directly
+          APP_SPEC_CONTENT=$(base64 -w 0 < temp-appspec.yml)
+          echo "Base64-encoded content: $APP_SPEC_CONTENT"
+          # Decode and display for verification
+          echo "Decoded content:"
+          echo "$APP_SPEC_CONTENT" | base64 -d
+          # Create the revision JSON file
+          jq -n --arg content "$APP_SPEC_CONTENT" '{
+            "revisionType": "AppSpecContent",
+            "appSpecContent": {
+              "content": $content
+            }
+          }' > deploy.json
+          echo "Generated deploy.json:"
+          cat deploy.json
+          rm temp-appspec.yml
 
-            - name: Trigger CodeDeploy Deployment
-              run: |
-                  aws deploy create-deployment \
-                    --application-name AppECS-photo-album-cluster-photo-album-service \
-                    --deployment-group-name DgpECS-photo-album-cluster-photo-album-service \
-                    --revision file://deploy.json
+      - name: Debug deploy.json
+        run: |
+          cat deploy.json
+
+      - name: Trigger CodeDeploy Deployment
+        run: |
+          aws deploy create-deployment \
+            --application-name AppECS-photo-album-cluster-photo-album-service \
+            --deployment-group-name DgpECS-photo-album-cluster-photo-album-service \
+            --revision file://deploy.json
