@@ -26,9 +26,9 @@ jobs:
 
             - name: Build and Push Docker Image
               run: |
-                  IMAGE_URI="public.ecr.aws/${{ secrets.AWS_PUBLIC_ECR_ALIAS }}/photo-album:latest"
-                  docker build -t photo-album .
-                  docker tag photo-album:latest $IMAGE_URI
+                  IMAGE_URI="public.ecr.aws/${{ secrets.AWS_PUBLIC_ECR_ALIAS }}/julius/photo-album:latest"
+                  docker build -t julius/photo-album .
+                  docker tag julius/photo-album:latest $IMAGE_URI
                   docker push $IMAGE_URI
 
             - name: Get Current ECS Task Definition
