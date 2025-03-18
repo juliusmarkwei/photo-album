@@ -65,6 +65,6 @@ jobs:
             - name: Trigger CodeDeploy Deployment
               run: |
                   aws deploy create-deployment \
-                    --application-name AppECS-photo-album-cluster-photo-album-service \
-                    --deployment-group-name DgpECS-photo-album-cluster-photo-album-service \
-                    --revision revisionType=AppSpecContent,appSpecContent="{\"version\":\"0.0\",\"resources\":[{\"targetService\":{\"type\":\"AWS::ECS::Service\",\"properties\":{\"taskDefinition\":\"$NEW_TASK_DEF_ARN\"}}}]}"
+                      --application-name AppECS-photo-album-cluster-photo-album-service \
+                      --deployment-group-name DgpECS-photo-album-cluster-photo-album-service \
+                      --revision "revisionType=AppSpecContent,appSpecContent={\"version\":\"0.0\",\"resources\":[{\"targetService\":{\"type\":\"AWS::ECS::Service\",\"properties\":{\"taskDefinition\":\"$NEW_TASK_DEF_ARN\"}}}]}"
