@@ -49,9 +49,9 @@ jobs:
                   IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/julius/photo-album:latest"
 
                   NEW_TASK_DEF=$(jq --arg IMAGE "$IMAGE_URI" '
-                  del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy, .compatibilities, .requiresAttributes, .tags) 
+                  del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy, .compatibilities, .requiresAttributes, .tags)
                   | .containerDefinitions[0].image=$IMAGE ' task-def.json)
-                
+
                   echo "$NEW_TASK_DEF" > new-task-def.json
                   NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --query "taskDefinition.taskDefinitionArn" --output text)
                   echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
@@ -65,6 +65,6 @@ jobs:
             - name: Trigger CodeDeploy Deployment
               run: |
                   aws deploy create-deployment \
-                      --application-name AppECS-photo-album-cluster-photo-album-service \
-                      --deployment-group-name DgpECS-photo-album-cluster-photo-album-service \
-                      --revision "revisionType=AppSpecContent,appSpecContent={\"version\":\"0.0\",\"resources\":[{\"targetService\":{\"type\":\"AWS::ECS::Service\",\"properties\":{\"taskDefinition\":\"$NEW_TASK_DEF_ARN\"}}}]}"
+                    --application-name AppECS-photo-album-cluster-photo-album-service \
+                    --deployment-group-name DgpECS-photo-album-cluster-photo-album-service \
+                    --revision revisionType=AppSpecContent,appSpecContent=file://appspec.json
