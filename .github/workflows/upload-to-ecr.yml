@@ -13,6 +13,13 @@ jobs:
             - name: Checkout Repository
               uses: actions/checkout@v4
 
+            - name: Install Latest AWS CLI
+              run: |
+                  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                  unzip awscliv2.zip
+                  sudo ./aws/install --update
+                  aws --version
+
             - name: Configure AWS Credentials
               uses: aws-actions/configure-aws-credentials@v2
               with:
@@ -52,15 +59,19 @@ jobs:
 
             - name: Prepare CodeDeploy Deployment File
               run: |
-                  APP_SPEC_CONTENT=$(jq -c . < appspec.json | base64 -w 0)
+                  jq --arg TASK_ARN "$NEW_TASK_DEF_ARN" '.resources[0].targetService.properties.taskDefinition = $TASK_ARN' appspec.json > temp-appspec.json
+                  APP_SPEC_CONTENT=$(jq -c . < temp-appspec.json | base64 -w 0)
                   jq -n --arg content "$APP_SPEC_CONTENT" '{
-                    "revision": {
-                      "revisionType": "AppSpecContent",
-                      "appSpecContent": {
-                        "content": $content
-                      }
+                    "revisionType": "AppSpecContent",
+                    "appSpecContent": {
+                      "content": $content
                     }
                   }' > deploy.json
+                  rm temp-appspec.json
+
+            - name: Debug deploy.json
+              run: |
+                  cat deploy.json
 
             - name: Trigger CodeDeploy Deployment
               run: |
