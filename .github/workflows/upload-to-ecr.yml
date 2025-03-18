@@ -57,8 +57,10 @@ jobs:
             - name: Prepare CodeDeploy Deployment File
               run: |
                   echo '{
-                      "revisionType": "AppSpecContent",
-                      "appSpecContent": '"$(jq -c . < appspec.json)"'
+                      "revision": {
+                          "revisionType": "AppSpecContent",
+                          "appSpecContent": '"$(jq -c . < appspec.json)"'
+                      }
                   }' > deploy.json
 
             - name: Trigger CodeDeploy Deployment
