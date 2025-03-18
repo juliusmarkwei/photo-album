@@ -36,12 +36,17 @@ jobs:
               run: |
                   TASK_DEF_NAME="photo-album-td"
                   aws ecs describe-task-definition --task-definition $TASK_DEF_NAME --query taskDefinition > task-def.json
-                  echo "TASK_DEF_JSON=$(cat task-def.json)" >> $GITHUB_ENV
+
+                  # Convert JSON into a single-line string and escape double quotes
+                  TASK_DEF_JSON=$(jq -c '.' task-def.json)
+
+                  # Store it properly in the GitHub Actions environment variable
+                  echo "TASK_DEF_JSON=$TASK_DEF_JSON" >> $GITHUB_ENV
 
             - name: Update Task Definition with New Image
               id: update-task-def
               run: |
-                  IMAGE_URI="${{ secrets.AWS_ACCESS_KEY_ID }}.dkr.ecr.us-east-1.amazonaws.com/julius/photo-album:latest"
+                  IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/julius/photo-album:latest"
 
                   NEW_TASK_DEF=$(jq --arg IMAGE "$IMAGE_URI" '.containerDefinitions[0].image=$IMAGE' task-def.json)
 
