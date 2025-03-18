@@ -1,4 +1,4 @@
-name: Build and Push Image to ECR, and Trigger ECS Blue/Green Deployment
+name: Build and Push Image to Public ECR, and Trigger ECS Blue/Green Deployment
 
 on:
     push:
@@ -20,13 +20,13 @@ jobs:
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                   aws-region: us-east-1
 
-            - name: Login to Amazon ECR
+            - name: Login to Amazon Public ECR
               run: |
-                  aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+                  aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/${{ secrets.AWS_PUBLIC_ECR_ALIAS }}
 
             - name: Build and Push Docker Image
               run: |
-                  IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/julius/photo-album:latest"
+                  IMAGE_URI="public.ecr.aws/${{ secrets.AWS_PUBLIC_ECR_ALIAS }}/photo-album:latest"
                   docker build -t photo-album .
                   docker tag photo-album:latest $IMAGE_URI
                   docker push $IMAGE_URI
@@ -37,16 +37,13 @@ jobs:
                   TASK_DEF_NAME="photo-album-td"
                   aws ecs describe-task-definition --task-definition $TASK_DEF_NAME --query taskDefinition > task-def.json
 
-                  # Convert JSON into a single-line string and escape double quotes
                   TASK_DEF_JSON=$(jq -c '.' task-def.json)
-
-                  # Store it properly in the GitHub Actions environment variable
                   echo "TASK_DEF_JSON=$TASK_DEF_JSON" >> $GITHUB_ENV
 
             - name: Update Task Definition with New Image
               id: update-task-def
               run: |
-                  IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/julius/photo-album:latest"
+                  IMAGE_URI="public.ecr.aws/${{ secrets.AWS_PUBLIC_ECR_ALIAS }}/photo-album:latest"
 
                   NEW_TASK_DEF=$(jq --arg IMAGE "$IMAGE_URI" '
                   del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy, .compatibilities, .requiresAttributes, .tags)
@@ -54,20 +51,19 @@ jobs:
 
                   echo "$NEW_TASK_DEF" > new-task-def.json
                   NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --query "taskDefinition.taskDefinitionArn" --output text)
-                  echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
-
-
-                  echo "$NEW_TASK_DEF" > new-task-def.json
-                  NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --query "taskDefinition.taskDefinitionArn" --output text)
 
                   echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
+
+            - name: Prepare CodeDeploy Deployment File
+              run: |
+                  echo '{
+                      "revisionType": "AppSpecContent",
+                      "appSpecContent": '"$(jq -c . < appspec.json)"'
+                  }' > deploy.json
 
             - name: Trigger CodeDeploy Deployment
               run: |
-                  APP_SPEC_JSON=$(jq -c . < appspec.json)
-                  
                   aws deploy create-deployment \
                     --application-name AppECS-photo-album-cluster-photo-album-service \
                     --deployment-group-name DgpECS-photo-album-cluster-photo-album-service \
-                    --revision "revisionType=AppSpecContent,appSpecContent='$APP_SPEC_JSON'"
-
+                    --cli-input-json file://deploy.json
