@@ -20,10 +20,6 @@ jobs:
                   sudo ./aws/install --update
                   aws --version
 
-            - name: Install yq
-              run: |
-                  sudo snap install yq
-
             - name: Configure AWS Credentials
               uses: aws-actions/configure-aws-credentials@v2
               with:
@@ -65,8 +61,11 @@ jobs:
               run: |
                   # Update TaskDefinition in the YAML file with the new ARN
                   sed "s|TaskDefinition: \".*\"|TaskDefinition: \"$NEW_TASK_DEF_ARN\"|" appspec.yml > temp-appspec.yml
-                  # Convert YAML to compact JSON and base64-encode it
-                  APP_SPEC_CONTENT=$(yaml2json temp-appspec.yml | jq -c . | base64 -w 0)
+                  echo "Updated appspec.yml content:"
+                  cat temp-appspec.yml
+                  # Base64-encode the YAML directly
+                  APP_SPEC_CONTENT=$(base64 -w 0 < temp-appspec.yml)
+                  echo "Base64-encoded content: $APP_SPEC_CONTENT"
                   # Create the revision JSON file
                   jq -n --arg content "$APP_SPEC_CONTENT" '{
                     "revisionType": "AppSpecContent",
@@ -74,6 +73,8 @@ jobs:
                       "content": $content
                     }
                   }' > deploy.json
+                  echo "Generated deploy.json:"
+                  cat deploy.json
                   rm temp-appspec.yml
 
             - name: Debug deploy.json
