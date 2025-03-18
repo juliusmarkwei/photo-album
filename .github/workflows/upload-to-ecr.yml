@@ -20,6 +20,10 @@ jobs:
                   sudo ./aws/install --update
                   aws --version
 
+            - name: Install yq
+              run: |
+                  sudo snap install yq
+
             - name: Configure AWS Credentials
               uses: aws-actions/configure-aws-credentials@v2
               with:
@@ -59,15 +63,18 @@ jobs:
 
             - name: Prepare CodeDeploy Deployment File
               run: |
-                  jq --arg TASK_ARN "$NEW_TASK_DEF_ARN" '.resources[0].targetService.properties.taskDefinition = $TASK_ARN' appspec.json > temp-appspec.json
-                  APP_SPEC_CONTENT=$(jq -c . < temp-appspec.json | base64 -w 0)
+                  # Update TaskDefinition in the YAML file with the new ARN
+                  sed "s|TaskDefinition: \".*\"|TaskDefinition: \"$NEW_TASK_DEF_ARN\"|" appspec.yml > temp-appspec.yml
+                  # Convert YAML to compact JSON and base64-encode it
+                  APP_SPEC_CONTENT=$(yaml2json temp-appspec.yml | jq -c . | base64 -w 0)
+                  # Create the revision JSON file
                   jq -n --arg content "$APP_SPEC_CONTENT" '{
                     "revisionType": "AppSpecContent",
                     "appSpecContent": {
                       "content": $content
                     }
                   }' > deploy.json
-                  rm temp-appspec.json
+                  rm temp-appspec.yml
 
             - name: Debug deploy.json
               run: |
