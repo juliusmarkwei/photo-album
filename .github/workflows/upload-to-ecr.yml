@@ -64,8 +64,10 @@ jobs:
 
             - name: Trigger CodeDeploy Deployment
               run: |
-                  APP_SPEC_JSON=$(cat appspec.json | jq -c .)
+                  APP_SPEC_JSON=$(jq -c . < appspec.json)
+                  
                   aws deploy create-deployment \
                     --application-name AppECS-photo-album-cluster-photo-album-service \
                     --deployment-group-name DgpECS-photo-album-cluster-photo-album-service \
-                    --revision revisionType=AppSpecContent,appSpecContent="$APP_SPEC_JSON"
+                    --revision "revisionType=AppSpecContent,appSpecContent='$APP_SPEC_JSON'"
+
