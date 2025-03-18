@@ -1,4 +1,4 @@
-name: Build and Push Docker Image to Private ECR
+name: Build and Push Docker Image to Public ECR
 
 on:
     push:
@@ -20,26 +20,18 @@ jobs:
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                   aws-region: us-east-1
 
-            - name: Ensure ECR Private Repository Exists
+            - name: Login to Amazon ECR Public
               run: |
-                  REPO_NAME="julius/photo-album"
-                  if ! aws ecr describe-repositories --repository-names "$REPO_NAME" > /dev/null 2>&1; then
-                    echo "Repository not found. Creating..."
-                    aws ecr create-repository --repository-name "$REPO_NAME"
-                  fi
-
-            - name: Login to Amazon ECR Private
-              run: |
-                  aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+                  aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 
             - name: Build Docker Image
               run: |
                   docker build -t photo-album .
 
-            - name: Tag Docker Image for Private ECR
+            - name: Tag Docker Image for Public ECR
               run: |
-                  docker tag photo-album:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/julius/photo-album:latest
+                  docker tag photo-album:latest public.ecr.aws/j1n7u2e7/photo-album:latest
 
-            - name: Push Docker Image to ECR
+            - name: Push Docker Image to ECR Public
               run: |
-                  docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/julius/photo-album:latest
+                  docker push public.ecr.aws/j1n7u2e7/photo-album:latest
