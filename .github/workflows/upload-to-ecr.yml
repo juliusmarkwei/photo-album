@@ -22,11 +22,11 @@ jobs:
 
             - name: Login to Amazon Public ECR
               run: |
-                  aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/${{ secrets.AWS_PUBLIC_ECR_ALIAS }}
+                  aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/j1n7u2e7
 
             - name: Build and Push Docker Image
               run: |
-                  IMAGE_URI="public.ecr.aws/${{ secrets.AWS_PUBLIC_ECR_ALIAS }}/julius/photo-album:latest"
+                  IMAGE_URI="public.ecr.aws/j1n7u2e7/julius/photo-album:latest"
                   docker build -t julius/photo-album .
                   docker tag julius/photo-album:latest $IMAGE_URI
                   docker push $IMAGE_URI
@@ -43,7 +43,7 @@ jobs:
             - name: Update Task Definition with New Image
               id: update-task-def
               run: |
-                  IMAGE_URI="public.ecr.aws/${{ secrets.AWS_PUBLIC_ECR_ALIAS }}/photo-album:latest"
+                  IMAGE_URI="public.ecr.aws/j1n7u2e7/julius/photo-album:latest"
 
                   NEW_TASK_DEF=$(jq --arg IMAGE "$IMAGE_URI" '
                   del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy, .compatibilities, .requiresAttributes, .tags)
