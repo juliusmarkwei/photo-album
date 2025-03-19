@@ -51,7 +51,7 @@ jobs:
                         Properties:
                           TaskDefinition: ${{ env.TASK_DEF_ARN }}
                           LoadBalancerInfo:
-                            ContainerName: photo-album-container1
+                            ContainerName: photo-album-container
                             ContainerPort: 3000
                   EOF
             - name: Upload appspec.yaml to S3
