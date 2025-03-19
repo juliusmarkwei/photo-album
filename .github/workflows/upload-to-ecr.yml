@@ -1,28 +1,17 @@
-name: Deploy to AWS ECR
+name: Build and Push Docker Image to Public ECR
 
 on:
     push:
         branches:
             - main
 
-permissions:
-    id-token: write
-    contents: read
-
 jobs:
-    deploy:
+    build-and-push:
         runs-on: ubuntu-latest
 
         steps:
             - name: Checkout Repository
               uses: actions/checkout@v4
-
-            - name: Install Latest AWS CLI
-              run: |
-                  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                  unzip awscliv2.zip
-                  sudo ./aws/install
-                  aws --version
 
             - name: Configure AWS Credentials
               uses: aws-actions/configure-aws-credentials@v2
@@ -31,12 +20,21 @@ jobs:
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                   aws-region: us-east-1
 
-            - name: Login to Amazon Public ECR
+            - name: Login to Amazon ECR Public
               run: |
                   aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 
-            - name: Build and Push Docker Image
+            - name: Build Docker Image
               run: |
-                  IMAGE_URI="public.ecr.aws/j1n7u2e7/julius/photo-album:latest"
-                  docker build -t $IMAGE_URI .
-                  docker push $IMAGE_URI
+                  docker build -t photo-album .
+                  docker build -t julius/photo-album .
+
+            - name: Tag Docker Image for Public ECR
+              run: |
+                  docker tag photo-album:latest public.ecr.aws/j1n7u2e7/photo-album:latest
+                  docker tag julius/photo-album:latest public.ecr.aws/j1n7u2e7/julius/photo-album:latest
+
+            - name: Push Docker Image to ECR Public
+              run: |
+                  docker push public.ecr.aws/j1n7u2e7/photo-album:latest
+                  docker push public.ecr.aws/j1n7u2e7/julius/photo-album:latest
