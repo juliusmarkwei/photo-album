@@ -64,36 +64,14 @@ jobs:
 
             - name: Prepare CodeDeploy Deployment File
               run: |
-                  # Update TaskDefinition using yq
-                  yq e ".Resources[0].TargetService.Properties.TaskDefinition = \"$NEW_TASK_DEF_ARN\"" appspec.yml > temp-appspec.yml
+                  yq e ".Resources[0].TargetService.Properties.TaskDefinition = \"$NEW_TASK_DEF_ARN\"" appspec.yml > appspec-updated.yml
                   echo "Updated appspec.yml content:"
-                  cat temp-appspec.yml
-                  # Validate the YAML
-                  yq e '.' temp-appspec.yml > /dev/null && echo "YAML is valid" || echo "YAML is invalid"
-                  # Base64-encode the YAML directly
-                  APP_SPEC_CONTENT=$(base64 -w 0 < temp-appspec.yml)
-                  echo "Base64-encoded content: $APP_SPEC_CONTENT"
-                  # Decode and display for verification
-                  echo "Decoded content:"
-                  echo "$APP_SPEC_CONTENT" | base64 -d
-                  # Create the revision JSON file
-                  jq -n --arg content "$APP_SPEC_CONTENT" '{
-                    "revisionType": "AppSpecContent",
-                    "appSpecContent": {
-                      "content": $content
-                    }
-                  }' > deploy.json
-                  echo "Generated deploy.json:"
-                  cat deploy.json
-                  rm temp-appspec.yml
-
-            - name: Debug deploy.json
-              run: |
-                  cat deploy.json
+                  cat appspec-updated.yml
+                  yq e '.' appspec-updated.yml > /dev/null && echo "YAML is valid" || echo "YAML is invalid"
 
             - name: Trigger CodeDeploy Deployment
               run: |
                   aws deploy create-deployment \
                     --application-name AppECS-photo-album-cluster-photo-album-service \
                     --deployment-group-name DgpECS-photo-album-cluster-photo-album-service \
-                    --revision file://deploy.json
+                    --revision revisionType=AppSpecFile,appSpecFile=appspec-updated.yml
