@@ -8,11 +8,18 @@ import DisplayImages from "./components/DisplayImages";
 import Ruler from "./components/Ruler";
 import { useEffect, useState } from "react";
 import { PhotoCategories } from "./constants/categories";
+import { shuffle } from "./utils/shuffelList";
+
+type Image = {
+    url: string;
+    name: string;
+    category: string;
+    key: string;
+};
 
 export default function Home() {
-    const [images, setImages] = useState<
-        { url: string; name: string; category: string; key: string }[]
-    >([]);
+    const [images, setImages] = useState<Image[]>([]);
+    const [filteredImages, setFilteredImages] = useState<Image[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [selectedCategory, setSelectedCategory] = useState<string>(
@@ -40,13 +47,28 @@ export default function Home() {
     console.log("Selected category is: ", selectedCategory);
 
     // Filter images by category and search term
-    const filteredImages = images.filter(
-        (img) =>
-            (selectedCategory === PhotoCategories.All ||
-                img.category === selectedCategory) &&
-            (!searchTerm ||
-                img.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    useEffect(() => {
+        const lastShuffleTime = parseInt(
+            localStorage.getItem("lastShuffleTime") || "0",
+            10
+        );
+
+        const _filteredImages = images.filter(
+            (img) =>
+                (selectedCategory === PhotoCategories.All ||
+                    img.category === selectedCategory) &&
+                (!searchTerm ||
+                    img.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+
+        const currentTime = Date.now();
+        if (currentTime - lastShuffleTime > 10000) {
+            shuffle(_filteredImages);
+            localStorage.setItem("lastShuffleTime", currentTime.toString());
+        }
+
+        setFilteredImages(_filteredImages);
+    }, [images, selectedCategory, searchTerm]);
 
     return (
         <div className="relative bg-black items-center justify-items-center h-dvh w-full p-3 pb-20 font-[family-name:var(--font-geist-sans)]">
